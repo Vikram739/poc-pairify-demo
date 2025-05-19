@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestCodeCompletionsOutputSchema},
   prompt: `You are an AI code completion assistant. Given a code prefix and programming language, you will suggest meaningful code completions.
 Each suggestion in the output array should be a complete, potentially multi-line, block of code that logically follows the prefix.
-For example, if the prefix is "def my_function" in Python, a valid suggestion might be "(param1, param2):\\n    return param1 + param2".
+For example, if the prefix is "def my_function" in Python, a valid sugestion might be "(param1, param2):\\n    return param1 + param2".
 Ensure multi-line suggestions are provided as a single string with '\\n' for newlines.
 
 Language: {{{language}}}
