@@ -1,9 +1,7 @@
 name: Generate QA Test Plan with Groq
-
 on:
   pull_request:
     types: [opened, synchronize, labeled]
-
 jobs:
   test-plan:
     runs-on: ubuntu-latest
@@ -11,23 +9,17 @@ jobs:
       - name: Checkout PR code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 👈 fetch all history
-          ref: ${{ github.head_ref }}
-
-      - name: Fetch base branch (main)
+          fetch-depth: 0  # fetch full history
+      - name: Fetch all branches
         run: |
-          git remote set-branches origin '*'
-          git fetch origin main
-
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
       - name: Get PR diff
-        run: git diff origin/main...HEAD > diff.txt
-
+        run: git diff origin/main HEAD > diff.txt
       - name: Generate Test Plan with Groq
         run: python generate_test_plan.py
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: llama3-70b-8192
-
       - name: Upload QA Test Plan as Artifact
         uses: actions/upload-artifact@v3
         with:
