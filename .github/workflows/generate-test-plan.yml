@@ -11,10 +11,13 @@ jobs:
       - name: Checkout PR code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # fetch entire history to allow comparison with origin/main
+          fetch-depth: 0  # 👈 fetch all history
+          ref: ${{ github.head_ref }}
 
-      - name: Fetch main branch
-        run: git fetch origin main
+      - name: Fetch base branch (main)
+        run: |
+          git remote set-branches origin '*'
+          git fetch origin main
 
       - name: Get PR diff
         run: git diff origin/main...HEAD > diff.txt
