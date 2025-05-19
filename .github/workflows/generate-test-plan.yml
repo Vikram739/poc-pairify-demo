@@ -1,23 +1,49 @@
-# .github/workflows/generate-test-plan.yml
-
 name: Generate QA Test Plan with Groq
-
 on:
   pull_request:
     types: [opened, synchronize, labeled]
-
 jobs:
   test-plan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout PR code
         uses: actions/checkout@v3
-
+        with:
+          fetch-depth: 0  # fetch full history
+      
+      - name: Debug Git Info
+        run: |
+          echo "Current branch: $(git branch --show-current)"
+          echo "All branches:"
+          git branch -a
+          echo "Remote info:"
+          git remote -v
+      
+      - name: Fetch all branches
+        run: |
+          git fetch --prune --unshallow origin || git fetch --prune origin
+      
+      - name: Determine base branch
+        id: base-branch
+        run: |
+          BASE_BRANCH="${{ github.base_ref }}"
+          echo "Base branch is: $BASE_BRANCH"
+          echo "base-branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
+      
       - name: Get PR diff
-        run: git diff origin/main...HEAD > diff.txt
-
+        run: |
+          git diff origin/${{ steps.base-branch.outputs.base-branch }}..HEAD > diff.txt || echo "No diff found, creating empty file" > diff.txt
+          echo "Diff file size: $(wc -l < diff.txt) lines"
+      
       - name: Generate Test Plan with Groq
         run: python generate_test_plan.py
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: llama3-70b-8192
+      
+      - name: Upload QA Test Plan as Artifact
+        uses: actions/upload-artifact@v4  # Updated to v4
+        with:
+          name: qa_test_plan
+          path: qa_test_plan.md
+          retention-days: 5
