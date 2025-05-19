@@ -5,19 +5,13 @@ on:
 jobs:
   test-plan:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # Needed to update PR description
     steps:
       - name: Checkout PR code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # fetch full history
-      
-      - name: Debug Git Info
-        run: |
-          echo "Current branch: $(git branch --show-current)"
-          echo "All branches:"
-          git branch -a
-          echo "Remote info:"
-          git remote -v
       
       - name: Fetch all branches
         run: |
@@ -27,13 +21,11 @@ jobs:
         id: base-branch
         run: |
           BASE_BRANCH="${{ github.base_ref }}"
-          echo "Base branch is: $BASE_BRANCH"
           echo "base-branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
       
       - name: Get PR diff
         run: |
           git diff origin/${{ steps.base-branch.outputs.base-branch }}..HEAD > diff.txt || echo "No diff found, creating empty file" > diff.txt
-          echo "Diff file size: $(wc -l < diff.txt) lines"
       
       - name: Generate Test Plan with Groq
         run: python generate_test_plan.py
@@ -42,8 +34,46 @@ jobs:
           GROQ_MODEL: llama3-70b-8192
       
       - name: Upload QA Test Plan as Artifact
-        uses: actions/upload-artifact@v4  # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: qa_test_plan
           path: qa_test_plan.md
           retention-days: 5
+      
+      - name: Update PR Description with Test Plan
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          
+          # Check if test plan file exists
+          if [ -f "qa_test_plan.md" ]; then
+            # Read test plan content safely
+            TEST_PLAN=$(cat qa_test_plan.md)
+            
+            # Escape any special characters that might cause issues
+            TEST_PLAN_ESCAPED=$(echo "$TEST_PLAN" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/`/\\`/g')
+            
+            # Get current PR description
+            PR_DESCRIPTION=$(gh pr view $PR_NUMBER --json body -q .body || echo "")
+            
+            # Prepare the new content to add
+            TEST_PLAN_SECTION="## QA Test Plan\n\n\`\`\`markdown\n$TEST_PLAN_ESCAPED\n\`\`\`"
+            
+            # Check if PR description already has a QA Test Plan section
+            if echo "$PR_DESCRIPTION" | grep -q "## QA Test Plan"; then
+              # Use jq to safely replace the section
+              NEW_DESCRIPTION=$(echo "$PR_DESCRIPTION" | jq -Rs 'split("## QA Test Plan")[0] + "## QA Test Plan\n\n```markdown\n'"$TEST_PLAN_ESCAPED"'\n```" + (split("## QA Test Plan")[1] | split("\n## ")[1:] | join("\n## ") | if length > 0 then "\n## " + . else "" end)' -r)
+            else
+              # Append to the end
+              NEW_DESCRIPTION="$PR_DESCRIPTION\n\n$TEST_PLAN_SECTION"
+            fi
+            
+            # Write to file and update PR
+            echo -e "$NEW_DESCRIPTION" > pr_description.txt
+            gh pr edit $PR_NUMBER --body-file pr_description.txt
+            
+            echo "Successfully updated PR description with QA Test Plan"
+          else
+            echo "Warning: qa_test_plan.md file not found"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
