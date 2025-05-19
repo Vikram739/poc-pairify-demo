@@ -1,5 +1,3 @@
-# .github/workflows/generate-test-plan.yml
-
 name: Generate QA Test Plan with Groq
 
 on:
@@ -10,8 +8,13 @@ jobs:
   test-plan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout PR code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # fetch entire history to allow comparison with origin/main
+
+      - name: Fetch main branch
+        run: git fetch origin main
 
       - name: Get PR diff
         run: git diff origin/main...HEAD > diff.txt
@@ -21,3 +24,9 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: llama3-70b-8192
+
+      - name: Upload QA Test Plan as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: qa_test_plan
+          path: qa_test_plan.md
