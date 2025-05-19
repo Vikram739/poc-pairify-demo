@@ -1,0 +1,28 @@
+// Simple Java rules for testing
+// To test these, ensure your editor recognizes this as Java or just treat as text.
+
+// Forbidden patterns (simple string match):
+System.out.println(
+import java.io.*
+pass
+// FIXME
+Runtime.getRuntime().exec(
+while (true) {
+
+
+// Regex patterns (should start and end with /):
+/public\s+class\s+\w+/
+/private\s+void\s+\w+/
+/throw\s+new\s+\w+Exception/
+
+// Style suggestions (simple text match, no semantic understanding)
+// Example: variables should be camelCase
+int my_variable = 0;
+if (someCondition) {
+    doSomething();
+}
+
+// TODOs for more complex checks (these require parsing or AI support):
+// TODO: Enforce that class names are PascalCase
+// TODO: Enforce method names are camelCase
+// TODO: Discourage use of magic numbers (numeric literals)
