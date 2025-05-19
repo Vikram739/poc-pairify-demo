@@ -28,11 +28,11 @@ jobs:
         run: |
           BASE_BRANCH="${{ github.base_ref }}"
           echo "Base branch is: $BASE_BRANCH"
-          echo "::set-output name=branch::$BASE_BRANCH"
+          echo "base-branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
       
       - name: Get PR diff
         run: |
-          git diff origin/${{ steps.base-branch.outputs.branch }}..HEAD > diff.txt || echo "No diff found, creating empty file" > diff.txt
+          git diff origin/${{ steps.base-branch.outputs.base-branch }}..HEAD > diff.txt || echo "No diff found, creating empty file" > diff.txt
           echo "Diff file size: $(wc -l < diff.txt) lines"
       
       - name: Generate Test Plan with Groq
@@ -42,7 +42,8 @@ jobs:
           GROQ_MODEL: llama3-70b-8192
       
       - name: Upload QA Test Plan as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: qa_test_plan
           path: qa_test_plan.md
+          retention-days: 5
