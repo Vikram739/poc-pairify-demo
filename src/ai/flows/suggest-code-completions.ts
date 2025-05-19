@@ -58,3 +58,30 @@ const suggestCodeCompletionsFlow = ai.defineFlow(
   }
 );
 
+const promptWithDefaultLanguage = ai.definePrompt({
+  name: 'suggestCodeCompletionsPrompt',
+  input: {schema: SuggestCodeCompletionsInputSchema},
+  output: {schema: SuggestCodeCompletionsOutputSchema},
+  prompt: `You are an AI code completion assistant. Given a code prefix and programming language, python you will suggest meaningful code completions.
+Each suggestion in the output array should be a complete, potentially multi-line, block of code that logically follows the prefix.
+For example, if the prefix is "def my_function" in Python, a valid suggestion might be "(param1, param2):\\n    return param1 + param2".
+Ensure multi-line suggestions are provided as a single string with '\\n' for newlines.
+
+Language: {{{language}}}
+Code Prefix: {{{codePrefix}}}
+
+Provide your suggestions according to the output schema:`,
+});
+
+const suggestCodeCompletionsFlow = ai.defineFlow(
+  {
+    name: 'suggestCodeCompletionsFlow',
+    inputSchema: SuggestCodeCompletionsInputSchema,
+    outputSchema: SuggestCodeCompletionsOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
+
